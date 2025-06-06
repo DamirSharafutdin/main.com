@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apple Catcher Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            touch-action: manipulation;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #basket {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            background-color: #8B4513;
+            border-radius: 0 0 20px 20px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        
+        .falling-object {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 5;
+        }
+        
+        .apple {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="red" d="M50,20c-15,0-25,10-25,25c0,20,25,35,25,35s25-15,25-35C75,30,65,20,50,20z"/><path fill="green" d="M55,10c0,0,10,5,10,15c0,10-10,10-10,10s0-10-10-10C45,15,55,10,55,10z"/></svg>');
+        }
+        
+        .bomb {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="black"/><path fill="gray" d="M30,30L40,40M60,30L70,40M30,70L40,60M60,70L70,60"/><path fill="red" d="M40,40L60,60M40,60L60,40"/></svg>');
+        }
+        
+        #scorePanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 20;
+        }
+        
+        #timePanel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 20;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 30;
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 40;
+            color: white;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 70px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="basket"></div>
+        <div id="scorePanel">Score: <span id="score">0</span></div>
+        <div id="timePanel">Time: <span id="time">60</span>s</div>
+        <div id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Your score: <span id="finalScore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
+        <div id="startScreen">
+            <h1>Apple Catcher</h1>
+            <p>Catch apples for 1 minute!</p>
+            <p>Avoid the bombs!</p>
+            <button id="startBtn">Start Game</button>
+        </div>
+        <div id="controls">
+            <div class="control-btn" id="leftBtn">←</div>
+            <div class="control-btn" id="rightBtn">→</div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let timeLeft = 60;
+        let gameInterval;
+        let objectsInterval;
+        let isGameRunning = false;
+        let basketPosition = 50; // Percentage
+        let basketSpeed = 5;
+        
+        // DOM elements
+        const basket = document.getElementById('basket');
+        const scoreDisplay = document.getElementById('score');
+        const timeDisplay = document.getElementById('time');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+        
+        // Touch controls
+        leftBtn.addEventListener('touchstart', () => moveBasket('left'));
+        leftBtn.addEventListener('touchend', () => stopBasket());
+        rightBtn.addEventListener('touchstart', () => moveBasket('right'));
+        rightBtn.addEventListener('touchend', () => stopBasket());
+        
+        // Keyboard controls (for testing on desktop)
+        document.addEventListener('keydown', (e) => {
+            if (!isGameRunning) return;
+            
+            if (e.key === 'ArrowLeft') {
+                moveBasket('left');
+            } else if (e.key === 'ArrowRight') {
+                moveBasket('right');
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                stopBasket();
+            }
+        });
+        
+        // Movement functions
+        function moveBasket(direction) {
+            if (direction === 'left') {
+                basketPosition = Math.max(0, basketPosition - basketSpeed);
+            } else {
+                basketPosition = Math.min(100, basketPosition + basketSpeed);
+            }
+            updateBasketPosition();
+        }
+        
+        function stopBasket() {
+            // No continuous movement, so this is empty
+        }
+        
+        function updateBasketPosition() {
+            basket.style.left = `${basketPosition}%`;
+        }
+        
+        // Game functions
+        function startGame() {
+            // Reset game state
+            score = 0;
+            timeLeft = 60;
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = timeLeft;
+            
+            // Clear any existing objects
+            document.querySelectorAll('.falling-object').forEach(obj => obj.remove());
+            
+            // Hide screens
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'none';
+            
+            // Start game loops
+            isGameRunning = true;
+            gameInterval = setInterval(updateGame, 1000);
+            objectsInterval = setInterval(createFallingObject, 800);
+        }
+        
+        function updateGame() {
+            timeLeft--;
+            timeDisplay.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                endGame(false);
+            }
+        }
+        
+        function createFallingObject() {
+            if (!isGameRunning) return;
+            
+            const object = document.createElement('div');
+            object.className = 'falling-object';
+            
+            // Randomly decide if it's an apple or bomb (20% chance for bomb)
+            const isBomb = Math.random() < 0.2;
+            object.classList.add(isBomb ? 'bomb' : 'apple');
+            
+            // Random horizontal position
+            const leftPos = Math.random() * 80 + 10; // Between 10% and 90%
+            object.style.left = `${leftPos}%`;
+            
+            // Set initial position at top
+            object.style.top = '-40px';
+            
+            // Add to game container
+            document.getElementById('gameContainer').appendChild(object);
+            
+            // Animation
+            const fallSpeed = Math.random() * 3 + 2; // Between 2 and 5
+            let topPos = -40;
+            
+            const fallInterval = setInterval(() => {
+                if (!isGameRunning) {
+                    clearInterval(fallInterval);
+                    return;
+                }
+                
+                topPos += fallSpeed;
+                object.style.top = `${topPos}px`;
+                
+                // Check if object is caught by basket
+                const basketRect = basket.getBoundingClientRect();
+                const objectRect = object.getBoundingClientRect();
+                
+                if (objectRect.bottom >= basketRect.top && 
+                    objectRect.right >= basketRect.left && 
+                    objectRect.left <= basketRect.right) {
+                    
+                    // Object caught
+                    clearInterval(fallInterval);
+                    object.remove();
+                    
+                    if (isBomb) {
+                        // Caught a bomb - game over
+                        endGame(true);
+                    } else {
+                        // Caught an apple - increase score
+                        score += 10;
+                        scoreDisplay.textContent = score;
+                    }
+                }
+                
+                // Check if object fell off screen
+                if (topPos > window.innerHeight) {
+                    clearInterval(fallInterval);
+                    object.remove();
+                }
+            }, 16); // ~60fps
+        }
+        
+        function endGame(bombHit) {
+            isGameRunning = false;
+            clearInterval(gameInterval);
+            clearInterval(objectsInterval);
+            
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'block';
+            
+            if (bombHit) {
+                document.querySelector('#gameOver h2').textContent = "Boom! You caught a bomb!";
+            } else {
+                document.querySelector('#gameOver h2').textContent = "Time's up!";
+            }
+        }
+        
+        // Initialize basket position
+        updateBasketPosition();
+    </script>
+</body>
+</html>

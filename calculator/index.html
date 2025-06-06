@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Scientific Calculator</title>
+    <style>
+        :root {
+            --calc-bg: #2c3e50;
+            --button-bg: #34495e;
+            --button-hover: #3d566e;
+            --button-active: #2c3e50;
+            --function-button: #3498db;
+            --function-hover: #2980b9;
+            --equals-button: #e74c3c;
+            --equals-hover: #c0392b;
+            --text-color: #ecf0f1;
+            --display-bg: #1a252f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .calculator {
+            width: 320px;
+            background-color: var(--calc-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .brand {
+            padding: 10px 15px;
+            color: var(--text-color);
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .brand .model {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .display {
+            padding: 20px;
+            text-align: right;
+            background-color: var(--display-bg);
+            color: var(--text-color);
+            position: relative;
+        }
+
+        .display-main {
+            font-size: 32px;
+            font-weight: 300;
+            min-height: 36px;
+            word-wrap: break-word;
+        }
+
+        .display-secondary {
+            font-size: 14px;
+            color: #95a5a6;
+            min-height: 18px;
+            margin-bottom: 5px;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            padding: 15px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 15px 0;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-color);
+            background-color: var(--button-bg);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            background-color: var(--button-active);
+            transform: translateY(0);
+        }
+
+        .function {
+            background-color: var(--function-button);
+        }
+
+        .function:hover {
+            background-color: var(--function-hover);
+        }
+
+        .equals {
+            background-color: var(--equals-button);
+            grid-column: span 2;
+        }
+
+        .equals:hover {
+            background-color: var(--equals-hover);
+        }
+
+        .shift, .alpha {
+            font-size: 12px;
+            position: relative;
+        }
+
+        .shift::before, .alpha::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .shift::before {
+            background-color: #f39c12;
+        }
+
+        .alpha::before {
+            background-color: #9b59b6;
+        }
+
+        .active-mode {
+            box-shadow: 0 0 0 2px;
+        }
+
+        .shift.active-mode {
+            box-shadow: 0 0 0 2px #f39c12;
+        }
+
+        .alpha.active-mode {
+            box-shadow: 0 0 0 2px #9b59b6;
+        }
+
+        .small-text {
+            font-size: 12px;
+            position: absolute;
+            top: 5px;
+            left: 15px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 400px) {
+            .calculator {
+                width: 100%;
+            }
+            
+            button {
+                padding: 12px 0;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="brand">
+            <div class="logo">MODERN</div>
+            <div class="model">fx-ES PLUS</div>
+            <div class="solar">SOLAR</div>
+        </div>
+        <div class="display">
+            <div class="display-secondary" id="secondary-display"></div>
+            <div class="display-main" id="main-display">0</div>
+        </div>
+        <div class="keypad">
+            <!-- First row -->
+            <button class="shift" onclick="toggleShift()">SHIFT</button>
+            <button class="alpha" onclick="toggleAlpha()">ALPHA</button>
+            <button class="function" onclick="clearAll()">AC</button>
+            <button class="function" onclick="deleteLastChar()">DEL</button>
+            <button class="function" onclick="appendToDisplay('/')">÷</button>
+            
+            <!-- Second row -->
+            <button id="shift-function" onclick="handleShiftFunction()">sin</button>
+            <button id="alpha-function" onclick="handleAlphaFunction()">A</button>
+            <button onclick="appendToDisplay('7')">7</button>
+            <button onclick="appendToDisplay('8')">8</button>
+            <button onclick="appendToDisplay('9')">9</button>
+            <button class="function" onclick="appendToDisplay('*')">×</button>
+            
+            <!-- Third row -->
+            <button id="shift-function" onclick="handleShiftFunction()">cos</button>
+            <button id="alpha-function" onclick="handleAlphaFunction()">B</button>
+            <button onclick="appendToDisplay('4')">4</button>
+            <button onclick="appendToDisplay('5')">5</button>
+            <button onclick="appendToDisplay('6')">6</button>
+            <button class="function" onclick="appendToDisplay('-')">-</button>
+            
+            <!-- Fourth row -->
+            <button id="shift-function" onclick="handleShiftFunction()">tan</button>
+            <button id="alpha-function" onclick="handleAlphaFunction()">C</button>
+            <button onclick="appendToDisplay('1')">1</button>
+            <button onclick="appendToDisplay('2')">2</button>
+            <button onclick="appendToDisplay('3')">3</button>
+            <button class="function" onclick="appendToDisplay('+')">+</button>
+            
+            <!-- Fifth row -->
+            <button id="shift-function" onclick="handleShiftFunction()">log</button>
+            <button id="alpha-function" onclick="handleAlphaFunction()">D</button>
+            <button onclick="appendToDisplay('0')">0</button>
+            <button onclick="appendToDisplay('.')">.</button>
+            <button class="function" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentDisplay = '0';
+        let secondaryDisplay = '';
+        let shiftMode = false;
+        let alphaMode = false;
+        let shiftFunctions = ['sin', 'cos', 'tan', 'log', 'ln'];
+        let alphaFunctions = ['A', 'B', 'C', 'D', 'X'];
+        
+        // Update the main display
+        function updateDisplay() {
+            document.getElementById('main-display').textContent = currentDisplay;
+            document.getElementById('secondary-display').textContent = secondaryDisplay;
+        }
+        
+        // Append input to the display
+        function appendToDisplay(value) {
+            if (currentDisplay === '0' && value !== '.') {
+                currentDisplay = value;
+            } else {
+                currentDisplay += value;
+            }
+            updateDisplay();
+        }
+        
+        // Clear the display
+        function clearAll() {
+            currentDisplay = '0';
+            secondaryDisplay = '';
+            updateDisplay();
+        }
+        
+        // Delete the last character
+        function deleteLastChar() {
+            if (currentDisplay.length === 1) {
+                currentDisplay = '0';
+            } else {
+                currentDisplay = currentDisplay.slice(0, -1);
+            }
+            updateDisplay();
+        }
+        
+        // Calculate the result
+        function calculate() {
+            try {
+                // Replace × and ÷ with * and / for evaluation
+                let expression = currentDisplay.replace(/×/g, '*').replace(/÷/g, '/');
+                
+                // Handle trigonometric functions (in radians)
+                expression = expression.replace(/sin\(([^)]+)\)/g, 'Math.sin($1)');
+                expression = expression.replace(/cos\(([^)]+)\)/g, 'Math.cos($1)');
+                expression = expression.replace(/tan\(([^)]+)\)/g, 'Math.tan($1)');
+                expression = expression.replace(/log\(([^)]+)\)/g, 'Math.log10($1)');
+                expression = expression.replace(/ln\(([^)]+)\)/g, 'Math.log($1)');
+                
+                secondaryDisplay = currentDisplay + '=';
+                currentDisplay = eval(expression).toString();
+                updateDisplay();
+            } catch (error) {
+                currentDisplay = 'Error';
+                updateDisplay();
+                setTimeout(clearAll, 1500);
+            }
+        }
+        
+        // Toggle shift mode
+        function toggleShift() {
+            shiftMode = !shiftMode;
+            const shiftButton = document.querySelector('.shift');
+            shiftButton.classList.toggle('active-mode');
+            
+            // Update shift function buttons
+            const shiftButtons = document.querySelectorAll('#shift-function');
+            shiftButtons.forEach((button, index) => {
+                if (shiftMode) {
+                    button.textContent = ['sin⁻¹', 'cos⁻¹', 'tan⁻¹', '10^', 'e^'][index];
+                } else {
+                    button.textContent = shiftFunctions[index];
+                }
+            });
+        }
+        
+        // Toggle alpha mode
+        function toggleAlpha() {
+            alphaMode = !alphaMode;
+            const alphaButton = document.querySelector('.alpha');
+            alphaButton.classList.toggle('active-mode');
+            
+            // Update alpha function buttons
+            const alphaButtons = document.querySelectorAll('#alpha-function');
+            alphaButtons.forEach((button, index) => {
+                if (alphaMode) {
+                    button.textContent = ['E', 'F', 'G', 'H', 'Y'][index];
+                } else {
+                    button.textContent = alphaFunctions[index];
+                }
+            });
+        }
+        
+        // Handle shift functions
+        function handleShiftFunction() {
+            const button = event.target;
+            const func = button.textContent;
+            
+            if (shiftMode) {
+                // Inverse functions
+                switch(func) {
+                    case 'sin⁻¹': appendToDisplay('arcsin('); break;
+                    case 'cos⁻¹': appendToDisplay('arccos('); break;
+                    case 'tan⁻¹': appendToDisplay('arctan('); break;
+                    case '10^': appendToDisplay('10^('); break;
+                    case 'e^': appendToDisplay('e^('); break;
+                }
+            } else {
+                // Regular functions
+                appendToDisplay(func + '(');
+            }
+        }
+        
+        // Handle alpha functions (just for demonstration)
+        function handleAlphaFunction() {
+            const button = event.target;
+            const char = button.textContent;
+            appendToDisplay(char);
+        }
+        
+        // Initialize the calculator
+        updateDisplay();
+    </script>
+</body>
+</html>

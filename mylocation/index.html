@@ -3,152 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Location Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>My Location on Yandex Map</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=YOUR_API_KEY&lang=en_US" type="text/javascript"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        html, body {
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px;
-            text-align: center;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         #map {
-            flex: 1;
             width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
-        #controls {
-            padding: 10px;
-            background-color: #f4f4f4;
-            text-align: center;
-        }
-        button {
+        #showLocation {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 24px;
             background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 10px 20px;
-            margin: 5px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        button:hover {
+        #showLocation:hover {
             background-color: #45a049;
-        }
-        #status {
-            margin: 10px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .loading {
-            background-color: #fff3cd;
-        }
-        .success {
-            background-color: #d4edda;
-        }
-        .error {
-            background-color: #f8d7da;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>My Location Map</h1>
-    </header>
-    
-    <div id="status">Click "Show My Location" to begin</div>
-    
     <div id="map"></div>
-    
-    <div id="controls">
-        <button id="locateBtn">Show My Location</button>
-        <button id="recenterBtn" disabled>Recenter Map</button>
-    </div>
+    <button id="showLocation">Show My Location</button>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Initialize the map
-        const map = L.map('map').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        ymaps.ready(init);
         
-        // Marker for user's location
-        let userMarker = null;
-        let userPosition = null;
+        let map;
+        let myPlacemark;
         
-        // Elements
-        const statusDiv = document.getElementById('status');
-        const locateBtn = document.getElementById('locateBtn");
-        const recenterBtn = document.getElementById('recenterBtn");
-        
-        // Update status message
-        function updateStatus(message, type) {
-            statusDiv.textContent = message;
-            statusDiv.className = type || '';
+        function init() {
+            // Create full-screen map centered on Moscow by default
+            map = new ymaps.Map("map", {
+                center: [55.75, 37.62], // Moscow coordinates
+                zoom: 10
+            });
         }
         
-        // Locate button click handler
-        locateBtn.addEventListener('click', () => {
-            updateStatus('Locating you...', 'loading');
-            
+        document.getElementById('showLocation').addEventListener('click', function() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        userPosition = position;
-                        const { latitude, longitude } = position.coords;
+                    function(position) {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
                         
-                        // Update map view
-                        map.setView([latitude, longitude], 15);
-                        
-                        // Add or update marker
-                        if (userMarker) {
-                            userMarker.setLatLng([latitude, longitude]);
-                        } else {
-                            userMarker = L.marker([latitude, longitude]).addTo(map)
-                                .bindPopup("You are here!").openPopup();
+                        // Remove previous placemark if exists
+                        if (myPlacemark) {
+                            map.geoObjects.remove(myPlacemark);
                         }
                         
-                        updateStatus(`Location found! Accuracy: ${Math.round(position.coords.accuracy)} meters`, 'success');
-                        recenterBtn.disabled = false;
+                        // Create new placemark
+                        myPlacemark = new ymaps.Placemark([latitude, longitude], {
+                            hintContent: 'Your location',
+                            balloonContent: 'You are here!'
+                        }, {
+                            preset: 'islands#greenDotIcon'
+                        });
+                        
+                        // Add placemark to map
+                        map.geoObjects.add(myPlacemark);
+                        
+                        // Center map on the location
+                        map.setCenter([latitude, longitude], 15);
+                        
+                        // Open balloon
+                        myPlacemark.balloon.open();
                     },
-                    (error) => {
-                        let errorMessage = "Error getting location: ";
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += "Permission denied. Please allow location access.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += "Location information unavailable.";
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += "Request timed out.";
-                                break;
-                            case error.UNKNOWN_ERROR:
-                                errorMessage += "Unknown error occurred.";
-                                break;
-                        }
-                        updateStatus(errorMessage, 'error');
+                    function(error) {
+                        alert('Error getting your location: ' + error.message);
                     }
                 );
             } else {
-                updateStatus("Geolocation is not supported by your browser", 'error');
-            }
-        });
-        
-        // Recenter button click handler
-        recenterBtn.addEventListener('click', () => {
-            if (userPosition) {
-                const { latitude, longitude } = userPosition.coords;
-                map.setView([latitude, longitude], 15);
-                if (userMarker) userMarker.openPopup();
+                alert('Geolocation is not supported by your browser');
             }
         });
     </script>

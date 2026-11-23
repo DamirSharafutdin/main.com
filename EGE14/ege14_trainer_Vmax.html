@@ -26,7 +26,7 @@
   <section id="quiz" class="hidden">
    <div class="kicker" id="number">Задание 1 из 319</div>
    <div class="stats">
-    <div class="stat"><b id="done">0</b><span>Пройдено</span></div>
+    <div class="stat"><b id="done">0</b><span>Уникальных увидено</span></div>
     <div class="stat"><b id="correct">0</b><span>Правильно</span></div>
     <div class="stat"><b id="wrong">0</b><span>Ошибки</span></div>
     <div class="stat"><b id="accuracy">—</b><span>Точность</span></div>
@@ -74,11 +74,12 @@ function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Num
 function save(){localStorage.setItem(KEY,JSON.stringify(state));}
 function show(section){['welcome','quiz','finished'].forEach(id=>$(id).classList.toggle('hidden',id!==section));}
 function maskedContext(word,display,context){const escaped=word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');try{const re=new RegExp(escaped,'i');if(!re.test(context))return 'Контекст откроется после ответа.';return context.replace(re,display);}catch(e){return 'Контекст откроется после ответа.';}}
-function updateStats(){ $('done').textContent=state.asked;$('correct').textContent=state.correct;$('wrong').textContent=state.wrong;$('accuracy').textContent=state.asked?Math.round(state.correct/state.asked*100)+'%':'—';$('bar').style.width=(state.index/state.order.length*100)+'%'; }
+function uniqueSeenCount(){return state.order?new Set(state.order.slice(0,Math.min(state.index+1,state.order.length))).size:0;}
+function updateStats(){ $('done').textContent=uniqueSeenCount();$('correct').textContent=state.correct;$('wrong').textContent=state.wrong;$('accuracy').textContent=state.asked?Math.round(state.correct/state.asked*100)+'%':'—';$('bar').style.width=(uniqueSeenCount()/ITEMS.length*100)+'%'; }
 function renderQuestion(){
- if(state.index>=ITEMS.length){finish();return;}
+ if(!state.order||state.index>=state.order.length){finish();return;}
  const q=ITEMS[state.order[state.index]];state.answered=false;save();
- $('number').textContent=`Задание ${state.index+1} из ${state.order.length}`;
+ $('number').textContent=`Карточка ${state.index+1} · уникальных заданий увидено: ${uniqueSeenCount()} из ${ITEMS.length}`;
  const display=q[4].replace(/\) +/g,')').replace(/ +\(/g,'(');$('display').textContent=display;$('context').textContent=maskedContext(q[0],display,q[2]);
  $('feedback').className='feedback';$('feedback').textContent='';$('nextArea').classList.add('hidden');
  document.querySelectorAll('[data-answer]').forEach(b=>{b.disabled=false;b.className='btn';b.classList.toggle('hidden',q[1]!=='дефис'&&b.dataset.answer==='дефис');});
@@ -89,7 +90,7 @@ function answer(chosen){if(state.answered)return;const q=ITEMS[state.order[state
  const box=$('feedback');box.className='feedback show';
  const title=ok?'✅ Правильно!':`❌ Неправильно. Правильный ответ: ${q[1]}`;
  box.innerHTML=`<h3>${title}</h3><p class="answerword">📌 ${escapeHtml(q[0])}</p><p><strong>Контекст:</strong> ${escapeHtml(q[2])}</p><p class="hint">💡 ${escapeHtml(q[3])}</p><p class="small">🔥 Серия: ${state.streak} · Точность: ${state.asked?Math.round(state.correct/state.asked*100):0}%</p>`;
- $('nextArea').classList.remove('hidden');$('nextBtn').textContent=state.index===ITEMS.length-1?'Завершить список →':'Следующее задание →';updateStats();
+ $('nextArea').classList.remove('hidden');$('nextBtn').textContent=state.index===state.order.length-1?'Завершить список →':'Следующее задание →';updateStats();
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function next(){if(state.index+1<state.order.length){state.index++;}else{state.index=state.order.length;save();finish();return;}save();renderQuestion();}
@@ -97,7 +98,8 @@ function finish(){save();show('finished');$('finishText').textContent=`Все з
 $('startBtn').onclick=startRandom;$('nextBtn').onclick=next;$('againBtn').onclick=startRandom;
 document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>answer(b.dataset.answer));
 $('resetBtn').onclick=()=>{if(confirm('Сбросить прогресс и статистику?')){state=fresh();save();show('welcome');}};
-$('statsBtn').onclick=()=>alert(`Статистика\n\nПройдено: ${state.asked}\nПравильно: ${state.correct}\nОшибок: ${state.wrong}\nТочность: ${state.asked?Math.round(state.correct/state.asked*100):0}%\nТекущая серия: ${state.streak}\nПозиция в списке: ${Math.min(state.index+1,ITEMS.length)} из ${ITEMS.length}`);
+$('statsBtn').onclick=()=>alert(`Статистика\n\nПройдено: ${state.asked}\nПравильно: ${state.correct}\nОшибок: ${state.wrong}\nТочность: ${state.asked?Math.round(state.correct/state.asked*100):0}%\nТекущая серия: ${state.streak}\nУникальных заданий увидено: ${uniqueSeenCount()} из ${ITEMS.length}
+Позиция в очереди с повторами: ${Math.min(state.index+1,state.order?state.order.length:0)} из ${state.order?state.order.length:0}`);
 // Resume where the learner left off. Missed tasks are already mixed into the remaining queue.
 if(state.order&&state.index>=0&&state.index<state.order.length)renderQuestion();else if(state.order&&state.index>=state.order.length&&state.asked>0)finish();
 </script>
